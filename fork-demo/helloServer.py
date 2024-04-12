@@ -26,9 +26,20 @@ if paramMap['usage']:
 def chatWithClient(connAddr):  
     sock, addr = connAddr
     print(f'Child: pid={os.getpid()} connected to client at {addr}')
-    sock.send(b"hello")
+    #sock.send(b"hello")
     time.sleep(0.25);       # delay 1/4s
-    sock.send(b"world")
+    data = sock.recv(1024).decode()
+    r,w = os.pipe()
+    os.write(w,data.encode())
+    os.close(w)
+    if len(data) == 0:
+        print("Zero length read, nothing to send, terminating")
+    else:
+        sendMsg = ("Echoing %s" % data).encode()
+        print("Received '%s', sending '%s'" % (data, sendMsg.decode()))
+        while len(sendMsg):
+            bytesSent = sock.send(sendMsg)
+            sendMsg = sendMsg[bytesSent:0]
     sock.shutdown(socket.SHUT_WR)
     sys.exit(0)                 # terminate child
 

@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 
 # Echo client program
-import socket, sys, re, time
+from mytar import OBFramer,OBDeframer
+import socket, sys, re, time, os
 sys.path.append("../lib")       # for params
 import params
 
@@ -49,6 +50,18 @@ for res in socket.getaddrinfo(serverHost, serverPort, socket.AF_UNSPEC, socket.S
 if s is None:
     print('could not open socket')
     sys.exit(1)
+
+os.write(1,"File to Send:".encode())
+filename_bytes =bytearray(os.read(1,100))
+filename = filename_bytes.decode()[:-1]
+fd = os.open(filename, os.O_RDONLY)
+r,w = os.pipe()
+OBFramer(filename,fd,w)
+outMessage = os.read(r,1000)
+while len(outMessage):
+    print("sending '%s'" % outMessage.decode())
+    bytesSent = os.write(s.fileno(), outMessage)
+    outMessage = outMessage[bytesSent:]
 
 delay = float(paramMap['delay']) # delay before reading (default = 0s)
 if delay != 0:
